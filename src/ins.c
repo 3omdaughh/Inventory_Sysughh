@@ -158,3 +158,25 @@ void searchItem(const vec *v)
 	}
 	else printf("Item not found in the inventory.\n");
 }
+
+void generateReports(const vec *v) 
+{
+	printf("\n");
+
+	printf("Report 1: List of all items in the inventory\n");
+	for (size_t i = 0; i < v->count; ++i) 
+	{
+		inventory item = v->items[i];
+		printf("Name: %s, Description: %s, Category: %s, Quantity: %d, Price: Rs%.2f\n",
+			item.name,
+			item.description,
+			categoryName(item.category),
+			item.quantity,
+			item.price);
+	}
+
+	printf("\nReport 2: Total value of inventory\n");
+	double totalValue = 0;
+	for (size_t i = 0; i < v->count; ++i) totalValue += v->items[i].quantity * v->items[i].price;
+	printf("Total value of inventory: Rs%.2f\n\n", totalValue);
+}

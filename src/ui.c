@@ -1,7 +1,7 @@
 #include <ncurses.h>
 #include <string.h>
 #include "../include/ui.h"
-#include "ins.c"
+#include "../include/ins.h"
 
 void ui_init()
 {
@@ -17,7 +17,7 @@ void ui_cleanup()
 
 void ui_draw_header()
 {
-	const char *title = " Inventory_Sysughh - Press 'a' to add, 'd' to delete, 'q' to quit ";
+	const char *title = " Inventory_Sysughh - Press 'a' to add, 'd' to delete, 's' for search, 'g' to generate reports, 'q' to quit ";
 	int len = strlen(title);
 	int x = (COLS - len) / 2; /* Center horizontally */
 
@@ -43,7 +43,86 @@ void ui_draw_footer()
 	clrtoeol(); /* clear to end of line just in case */
 }
 
+void inventory_display_item(inventory *item, int y, int selected) 
+{
+    if (selected) attron(A_REVERSE);
+    mvprintw(y, 2, "- %s | Qty: %d | Rs%.2f", item->name, item->quantity, item->price);
+    if (selected) attroff(A_REVERSE);
+}
+
 void ui_main_loop()
 {
-	/* --- */
+	initscr();
+	keypad(stdscr, TRUE);
+	noecho();
+	curs_set(FALSE);
+
+	while (1) 
+	{
+		clear();
+		ui_draw_header();
+
+		for (int i = 0; i < (int)inventory.count; ++i) inventory_display_item(&inventory.items[i], 2 + i, i == selected);
+
+		ui_draw_footer();
+		refresh();
+
+		ch = getch();
+		if (ch == 'q') break;
+		else if (ch == KEY_UP && selected > 0) selected--;
+		else if (ch == KEY_DOWN && selected < (int)inventory.count - 1) selected++;
+		else if (ch == 'a') 
+		{
+			echo();
+			addItem(&inventory);
+			noecho();
+		}
+		else if (ch == 'd' && inventory.count > 0) 
+		{
+			deleteItem(&inventory.items[selected]);
+			for (size_t i = selected; i < inventory.count - 1; ++i) inventory.items[i] = inventory.items[i + 1];
+			inventory.count--;
+			if (selected >= (int)inventory.count) selected = inventory.count - 1;
+	    	}
+		else if (ch == 's')
+		{
+			echo();
+			char query[256];
+			mvprintw(LINES - 2, 0, "Search by name: ");
+			getnstr(query, sizeof(query) - 1);
+			noecho();
+
+			for (char *p = query; *p; ++p) *p = tolower(*p);
+
+			int found = -1;
+			for (int i = 0; i < (int)inventory.count; ++i) 
+			{
+				char *copy = strdup(inventory.items[i].name);
+				for (char *p = copy; *p; ++p) *p = tolower(*p);
+				if (strcmp(copy, query) == 0) 
+				{
+					found = i;
+					free(copy);
+					break;
+			    	}
+			    	free(copy);
+			}
+
+			if (found != -1) selected = found;
+			else 
+			{
+				mvprintw(LINES - 3, 0, "Item not found. Press any key...");
+				getch();
+			}
+		}
+		else if (ch == 'g')
+		{
+			clear();
+			generateReports(&inventory);
+			mvprintw(LINES - 2, 0, "Press any key to return...");
+			getch();
+	    	}
+	}
+
+	return 0;
 }
