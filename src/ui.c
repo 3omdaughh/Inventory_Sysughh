@@ -1,6 +1,7 @@
 #include <ncurses.h>
 #include <string.h>
 #include "../include/ui.h"
+#include "ins.c"
 
 void ui_init()
 {
