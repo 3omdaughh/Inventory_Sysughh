@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-Wall -g
 LDFLAGS=-lncurses
 
-SRC=src/main.c src/ui.c src/ins.c src/io.c
+SRC=src/main.c src/ui.c src/inventory.c
 INC=-Iinclude
 
 inventory : $(SRC)
@@ -10,4 +10,3 @@ inventory : $(SRC)
 
 clean:
 	rm -f inventory *.o
-
