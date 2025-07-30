@@ -1,128 +1,131 @@
 #include <ncurses.h>
+#include <stdlib.h>
 #include <string.h>
-#include "../include/ui.h"
-#include "../include/ins.h"
+#include "ui.h"
 
-void ui_init()
+void init_ui() 
 {
-	initscr(); noecho(); cbreak();
+	initscr();
+	cbreak();
+	noecho();
 	keypad(stdscr, TRUE);
-	curs_set(0);
 }
 
-void ui_cleanup()
+void cleanup_ui() 
 {
 	endwin();
 }
 
-void ui_draw_header()
+void display_menu() 
 {
-	const char *title = " Inventory_Sysughh - Press 'a' to add, 'd' to delete, 's' for search, 'g' to generate reports, 'q' to quit ";
+	clear();
+	const char *title = "Inventory_Sysughh";
 	int len = strlen(title);
-	int x = (COLS - len) / 2; /* Center horizontally */
+	int x = (COLS - len) / 2;
 
-	/* Print the centered title at the top */
 	mvprintw(0, x, "%s", title);
-	/* Print the centerd horizontal line under the text */ 
 	move(1, 0);
 	hline('=', COLS);
+
+	mvprintw(3, x, "1. Add New Item");
+	mvprintw(4, x, "2. Delete Item");
+	mvprintw(5, x, "3. Search Item");
+	mvprintw(6, x, "4. Generate Reports");
+	mvprintw(7, x, "5. Exit");
+	mvprintw(8, x, "Enter Your Choice: ");
+
+	move(LINES - 2, 0);
+	hline('=', COLS);
+	refresh();
 }
 
-void ui_draw_footer() 
+int get_menu_choice() 
 {
-	/* Draw horizontal line above the footer */
+	char input[10];
+	echo();
+	getstr(input);
+	noecho();
+	return atoi(input);
+}
+
+void get_item_input(Inventory* item) 
+{
+	clear();
+
+	const char *title = "Inventory_Sysughh";
+	int len = strlen(title);
+	int x = (COLS - len) / 2;
+
+	mvprintw(0, x, "%s", title);
+	move(1, 0);
+	hline('=', COLS);
+
 	move(LINES - 2, 0);
 	hline('=', COLS);
 
-	/* Print footer message on the last line, centered */
-	const char *footer = " use arrows to navigate | Press 'q' to quit ";
-	int len = strlen(footer);
-	int x = (COLS - len) / 2;
-	mvprintw(LINES - 1, x, "%s", footer);
-
-	clrtoeol(); /* clear to end of line just in case */
-}
-
-void inventory_display_item(inventory *item, int y, int selected) 
-{
-    if (selected) attron(A_REVERSE);
-    mvprintw(y, 2, "- %s | Qty: %d | Rs%.2f", item->name, item->quantity, item->price);
-    if (selected) attroff(A_REVERSE);
-}
-
-void ui_main_loop()
-{
-	initscr();
-	keypad(stdscr, TRUE);
+	mvprintw(3, x, "Enter item details:");
+	mvprintw(4, x, "Name: ");
+	echo();
+	getstr(item->name);
+	mvprintw(5, x, "Description: ");
+	getstr(item->description);
+	mvprintw(6, x, "Category (1-6): ");
+	char cat[10];
+	getstr(cat);
+	item->category = atoi(cat);
+	mvprintw(7, x, "Quantity: ");
+	char qty[10];
+	getstr(qty);
+	item->quantity = atoi(qty);
+	mvprintw(8, x, "Price: ");
+	char price[10];
+	getstr(price);
+	item->price = atof(price);
 	noecho();
-	curs_set(FALSE);
+}
 
-	while (1) 
-	{
-		clear();
-		ui_draw_header();
+void get_delete_input(char* name, int* quantity) 
+{
+	clear();
 
-		for (int i = 0; i < (int)inventory.count; ++i) inventory_display_item(&inventory.items[i], 2 + i, i == selected);
+	const char *title = "Inventory_Sysughh";
+	int len = strlen(title);
+	int x = (COLS - len) / 2;
 
-		ui_draw_footer();
-		refresh();
+	mvprintw(0, x, "%s", title);
+	move(1, 0);
+	hline('=', COLS);
 
-		ch = getch();
-		if (ch == 'q') break;
-		else if (ch == KEY_UP && selected > 0) selected--;
-		else if (ch == KEY_DOWN && selected < (int)inventory.count - 1) selected++;
-		else if (ch == 'a') 
-		{
-			echo();
-			addItem(&inventory);
-			noecho();
-		}
-		else if (ch == 'd' && inventory.count > 0) 
-		{
-			deleteItem(&inventory.items[selected]);
-			for (size_t i = selected; i < inventory.count - 1; ++i) inventory.items[i] = inventory.items[i + 1];
-			inventory.count--;
-			if (selected >= (int)inventory.count) selected = inventory.count - 1;
-	    	}
-		else if (ch == 's')
-		{
-			echo();
-			char query[256];
-			mvprintw(LINES - 2, 0, "Search by name: ");
-			getnstr(query, sizeof(query) - 1);
-			noecho();
+	move(LINES - 2, 0);
+	hline('=', COLS);
 
-			for (char *p = query; *p; ++p) *p = tolower(*p);
+	mvprintw(3, x, "Enter item name: ");
+	echo();
+	getstr(name);
+	mvprintw(4, x, "Enter Quantity to delete: ");
+	char qty[10];
+	getstr(qty);
+	*quantity = atoi(qty);
+	noecho();
+}
 
-			int found = -1;
-			for (int i = 0; i < (int)inventory.count; ++i) 
-			{
-				char *copy = strdup(inventory.items[i].name);
-				for (char *p = copy; *p; ++p) *p = tolower(*p);
-				if (strcmp(copy, query) == 0) 
-				{
-					found = i;
-					free(copy);
-					break;
-			    	}
-			    	free(copy);
-			}
+void get_search_input(char* name) 
+{
+	clear();
 
-			if (found != -1) selected = found;
-			else 
-			{
-				mvprintw(LINES - 3, 0, "Item not found. Press any key...");
-				getch();
-			}
-		}
-		else if (ch == 'g')
-		{
-			clear();
-			generateReports(&inventory);
-			mvprintw(LINES - 2, 0, "Press any key to return...");
-			getch();
-	    	}
-	}
+	const char *title = "Inventory_Sysughh";
+	int len = strlen(title);
+	int x = (COLS - len) / 2;
 
-	return 0;
+	mvprintw(0, x, "%s", title);
+	move(1, 0);
+	hline('=', COLS);
+
+	move(LINES - 2, 0);
+	hline('=', COLS);
+
+	mvprintw(3, x, "Enter item name: ");
+	echo();
+	getstr(name);
+	noecho();
 }
